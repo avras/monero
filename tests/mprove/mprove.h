@@ -1,0 +1,97 @@
+#include "ringct/rctSigs.h"
+#include "cryptonote_basic/cryptonote_basic.h"
+#include "../io.h"
+
+struct lsagSig {
+  rct::keyV ss;
+  rct::key cc;
+  rct::key II;
+};
+
+lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key & xx, const unsigned int index, hw::device &hwdev) {
+    lsagSig rv;
+    size_t cols = pk.size();
+    CHECK_AND_ASSERT_THROW_MES(cols >= 2, "Error! What is c if cols = 1!");
+    CHECK_AND_ASSERT_THROW_MES(index < cols, "Index out of range");
+
+    size_t i = 0;
+    rct::key c, c_old, L, R, Hi, aHP;
+    sc_0(c_old.bytes);
+    rct::geDsmp Ip;
+    rct::key alpha;
+    rct::key aG;
+
+    rv.ss = rct::keyV(cols);
+    rct::keyV toHash(4);
+    toHash[0] = message;
+    toHash[1] = pk[index];
+    Hi = hashToPoint(pk[index]);
+    hwdev.mlsag_prepare(Hi, xx, alpha, aG, aHP, rv.II);
+    toHash[2] = aG;
+    toHash[3] = aHP;
+    precomp(Ip.k, rv.II);
+
+    hwdev.mlsag_hash(toHash, c_old);
+
+    i = (index + 1) % cols;
+    if (i == 0) {
+        copy(rv.cc, c_old);
+    }
+    while (i != index) {
+
+        rv.ss[i] = rct::skGen();            
+        sc_0(c.bytes);
+        addKeys2(L, rv.ss[i], c_old, pk[i]);
+        hashToPoint(Hi, pk[i]);
+        addKeys3(R, rv.ss[i], Hi, c_old, Ip.k);
+        toHash[1] = pk[i];
+        toHash[2] = L; 
+        toHash[3] = R;
+        hwdev.mlsag_hash(toHash, c);
+        copy(c_old, c);
+        i = (i + 1) % cols;
+        
+        if (i == 0) { 
+            copy(rv.cc, c_old);
+        }   
+    }
+
+    sc_mulsub(rv.ss[index].bytes, c.bytes, xx.bytes, alpha.bytes);
+    return rv;
+}
+
+bool LSAG_Ver(const rct::key &message, const rct::keyV & pk, const lsagSig & rv) {
+
+    size_t cols = pk.size();
+    CHECK_AND_ASSERT_MES(cols >= 2, false, "Error! What is c if cols = 1!");
+    CHECK_AND_ASSERT_MES(rv.ss.size() == cols, false, "Bad rv.ss size");
+
+    for (size_t i = 0; i < rv.ss.size(); ++i)
+        CHECK_AND_ASSERT_MES(sc_check(rv.ss[i].bytes) == 0, false, "Bad ss slot");
+    CHECK_AND_ASSERT_MES(sc_check(rv.cc.bytes) == 0, false, "Bad cc");
+
+    size_t i = 0;
+    rct::key c,  L, R, Hi;
+    rct::key c_old = copy(rv.cc);
+    rct::geDsmp Ip;
+    precomp(Ip.k, rv.II);
+
+    rct::keyV toHash(4);
+    toHash[0] = message;
+    i = 0;
+    while (i < cols) {
+        sc_0(c.bytes);
+        addKeys2(L, rv.ss[i], c_old, pk[i]);
+        hashToPoint(Hi, pk[i]);
+        CHECK_AND_ASSERT_MES(!(Hi == rct::identity()), false, "Data hashed to point at infinity");
+        addKeys3(R, rv.ss[i], Hi, c_old, Ip.k);
+        toHash[1] = pk[i];
+        toHash[2] = L; 
+        toHash[3] = R;
+        c = hash_to_scalar(toHash);
+        copy(c_old, c);
+        i = (i + 1);
+    }
+    sc_sub(c.bytes, c_old.bytes, rv.cc.bytes);
+    return sc_isnonzero(c.bytes) == 0;  
+}
