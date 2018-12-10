@@ -33,6 +33,9 @@ MoneroExchange::MoneroExchange(size_t anonSetSize, size_t ownkeysSetSize, rct::k
   m_proof.msg = message;
   m_proof.addrs = rct::keyV(anonSetSize);
   m_proof.cs = rct::keyV(anonSetSize);
+  m_proof.cprimes = rct::keyV(anonSetSize);
+  m_proof.gammas = std::vector<ringSig>(anonSetSize);
+  m_proof.sigmas = std::vector<lsagSig>(anonSetSize);
   m_ownKeys = rct::keyV(anonSetSize);
   m_ownAmounts = std::vector<rct::xmr_amount>(anonSetSize);
   m_amountMasks = rct::keyV(anonSetSize);
