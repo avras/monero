@@ -11,6 +11,8 @@ int main(int argc, char *argv[]) {
   rct::keyV P;
   size_t ind;
   lsagSig Icss;
+  ringSig css;
+  bool valid;
 
     rct::keyV xv = rct::keyV(cols);
     P  = rct::keyV(cols);
@@ -21,10 +23,33 @@ int main(int argc, char *argv[]) {
         P[i] = rct::scalarmultBase(xv[i]);
     }
     sk = xv[ind];
+
     cout << "Generating LSAG signature" << endl;
     Icss = LSAG_Gen(rct::identity(), P, sk, ind, hw::get_device("default"));
     cout << "Verifying LSAG signature" << endl;
-    LSAG_Ver(rct::identity(), P, Icss);
+    valid = LSAG_Ver(rct::identity(), P, Icss);
+    if(valid)
+    {
+      cout << "Verification successful!" << endl;
+    }
+    else
+    {
+      cout << "Verification failed!" << endl;
+    }
+    cout << endl;
+
+    cout << "Generating ring signature" << endl;
+    css = RingSig_Gen(rct::identity(), P, sk, ind);
+    cout << "Verifying ring signature" << endl;
+    valid = RingSig_Ver(rct::identity(), P, css);
+    if(valid)
+    {
+      cout << "Verification successful!" << endl;
+    }
+    else
+    {
+      cout << "Verification failed!" << endl;
+    }
 
   return 0;
 }
