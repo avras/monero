@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
   rct::key sk;
   rct::keyV P;
   size_t ind;
-  lsagSig IIccss;
+  lsagSig Icss;
 
     rct::keyV xv = rct::keyV(cols);
     P  = rct::keyV(cols);
@@ -22,9 +22,9 @@ int main(int argc, char *argv[]) {
     }
     sk = xv[ind];
     cout << "Generating LSAG signature" << endl;
-    IIccss = LSAG_Gen(rct::identity(), P, sk, ind, hw::get_device("default"));
+    Icss = LSAG_Gen(rct::identity(), P, sk, ind, hw::get_device("default"));
     cout << "Verifying LSAG signature" << endl;
-    LSAG_Ver(rct::identity(), P, IIccss);
+    LSAG_Ver(rct::identity(), P, Icss);
 
   return 0;
 }

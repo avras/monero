@@ -4,14 +4,14 @@
 
 struct lsagSig {
   rct::keyV ss;
-  rct::key cc;
-  rct::key II;
+  rct::key c;
+  rct::key I;
 };
 
-lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key & xx, const unsigned int index, hw::device &hwdev) {
+lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key & x, const unsigned int index, hw::device &hwdev) {
     lsagSig rv;
     size_t cols = pk.size();
-    CHECK_AND_ASSERT_THROW_MES(cols >= 2, "Error! What is c if cols = 1!");
+    CHECK_AND_ASSERT_THROW_MES(cols >= 2, "Error! Why ring signature if cols = 1!");
     CHECK_AND_ASSERT_THROW_MES(index < cols, "Index out of range");
 
     size_t i = 0;
@@ -26,16 +26,16 @@ lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key &
     toHash[0] = message;
     toHash[1] = pk[index];
     Hi = hashToPoint(pk[index]);
-    hwdev.mlsag_prepare(Hi, xx, alpha, aG, aHP, rv.II);
+    hwdev.mlsag_prepare(Hi, x, alpha, aG, aHP, rv.I);
     toHash[2] = aG;
     toHash[3] = aHP;
-    precomp(Ip.k, rv.II);
+    precomp(Ip.k, rv.I);
 
     hwdev.mlsag_hash(toHash, c_old);
 
     i = (index + 1) % cols;
     if (i == 0) {
-        copy(rv.cc, c_old);
+        copy(rv.c, c_old);
     }
     while (i != index) {
 
@@ -52,11 +52,11 @@ lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key &
         i = (i + 1) % cols;
         
         if (i == 0) { 
-            copy(rv.cc, c_old);
+            copy(rv.c, c_old);
         }   
     }
 
-    sc_mulsub(rv.ss[index].bytes, c.bytes, xx.bytes, alpha.bytes);
+    sc_mulsub(rv.ss[index].bytes, c.bytes, x.bytes, alpha.bytes);
     return rv;
 }
 
@@ -68,13 +68,13 @@ bool LSAG_Ver(const rct::key &message, const rct::keyV & pk, const lsagSig & rv)
 
     for (size_t i = 0; i < rv.ss.size(); ++i)
         CHECK_AND_ASSERT_MES(sc_check(rv.ss[i].bytes) == 0, false, "Bad ss slot");
-    CHECK_AND_ASSERT_MES(sc_check(rv.cc.bytes) == 0, false, "Bad cc");
+    CHECK_AND_ASSERT_MES(sc_check(rv.c.bytes) == 0, false, "Bad c");
 
     size_t i = 0;
     rct::key c,  L, R, Hi;
-    rct::key c_old = copy(rv.cc);
+    rct::key c_old = copy(rv.c);
     rct::geDsmp Ip;
-    precomp(Ip.k, rv.II);
+    precomp(Ip.k, rv.I);
 
     rct::keyV toHash(4);
     toHash[0] = message;
@@ -92,6 +92,6 @@ bool LSAG_Ver(const rct::key &message, const rct::keyV & pk, const lsagSig & rv)
         copy(c_old, c);
         i = (i + 1);
     }
-    sc_sub(c.bytes, c_old.bytes, rv.cc.bytes);
+    sc_sub(c.bytes, c_old.bytes, rv.c.bytes);
     return sc_isnonzero(c.bytes) == 0;  
 }
