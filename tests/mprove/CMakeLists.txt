@@ -30,6 +30,7 @@ set(mprove_sources
   main.cpp)
 
 set(mprove_headers
+  mproveSigs.h
   mprove.h)
 
 add_executable(mprove-tests
