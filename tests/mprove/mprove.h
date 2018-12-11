@@ -19,11 +19,13 @@ class MoneroExchange
     rct::keyV m_ownKeys;
     std::vector<rct::xmr_amount> m_ownAmounts;
     rct::keyV m_amountMasks;
-    rct::xmr_amount m_maxAmount = 1000;
+    rct::xmr_amount m_maxAmount = 1000; // Only for generating random amounts per address
     rct::keyV m_cprimeKeys;
   public:
     MoneroExchange(size_t anonSetSize, size_t ownkeysSetSize, rct::key message);
     mproveProof GenerateProofOfAssets();
+    bool PrivatelyVerifyProofOfAssets();
+    void PrintExchangeState();
 };
 
 MoneroExchange::MoneroExchange(size_t anonSetSize, size_t ownkeysSetSize, rct::key message)
@@ -58,7 +60,7 @@ MoneroExchange::MoneroExchange(size_t anonSetSize, size_t ownkeysSetSize, rct::k
 
   for (size_t i = 0; i < anonSetSize; i++)
   {
-    if (sc_isnonzero(m_ownKeys[i].bytes) == 0)
+    if (sc_isnonzero(m_ownKeys[i].bytes) == 1)
     {
       m_proof.addrs[i] = rct::scalarmultBase(m_ownKeys[i]);
       m_ownAmounts[i] = rct::randXmrAmount(m_maxAmount);
@@ -86,7 +88,7 @@ mproveProof MoneroExchange::GenerateProofOfAssets()
 
   for (size_t i = 0; i < m_anonSetSize; i++)
   {
-    if (sc_isnonzero(m_ownKeys[i].bytes) == 0)
+    if (sc_isnonzero(m_ownKeys[i].bytes) == 1)
     {
       m_cprimeKeys[i] = rct::skGen();
       m_proof.cprimes[i] = rct::scalarmultBase(m_cprimeKeys[i]);
@@ -123,6 +125,96 @@ mproveProof MoneroExchange::GenerateProofOfAssets()
   rct::subKeys(m_proof.cassets, csum, cprimesum);
 
   return m_proof;
+}
+
+bool MoneroExchange::PrivatelyVerifyProofOfAssets()
+{
+  rct::key csum, cprimesum, cassets;
+
+  csum = rct::addKeys(m_proof.cs);
+  cprimesum = rct::addKeys(m_proof.cprimes);
+  rct::subKeys(cassets, csum, cprimesum);
+  if(!rct::equalKeys(cassets, m_proof.cassets))
+  {
+    std::cout << "Commitments to assets does not satisfy equation" << std::endl;
+    return false;
+  }
+
+  rct::keyV ringPks(2);
+  rct::keyV lsagPks(2);
+
+  for (size_t i = 0; i < m_anonSetSize; i++)
+  {
+      // Ring signature verification
+      ringPks[0] = m_proof.cprimes[i];
+      rct::subKeys(ringPks[1], m_proof.cprimes[i], m_proof.cs[i]);
+      if(!RingSig_Ver(m_proof.msg, ringPks, m_proof.gammas[i]))
+      {
+        std::cout << "Ring signature verification failed at location " << i+1 << std::endl;
+        return false;
+      }
+
+      // Linkable ring signature verification
+      lsagPks[0] = m_proof.addrs[i];
+      lsagPks[1] = ringPks[1];
+      if(!LSAG_Ver(m_proof.msg, lsagPks, m_proof.sigmas[i]))
+      {
+        std::cout << "Linkable ring signature verification failed at location " << i+1 << std::endl;
+        return false;
+      }
+  }
+
+  rct::key cgen, cassetmask;
+  rct::xmr_amount amountTotal = 0;
+
+  sc_0(cassetmask.bytes);
+  for (size_t i = 0; i < m_anonSetSize; i++)
+  {
+    if (sc_isnonzero(m_ownKeys[i].bytes) == 1)
+    {
+      cgen = rct::commit(m_ownAmounts[i], m_amountMasks[i]);
+      if(!rct::equalKeys(cgen, m_proof.cs[i]))
+      {
+        std::cout << "Pedersen commitment of own address not obtained from amount and mask" << std::endl;
+        return false;
+      }
+      amountTotal += m_ownAmounts[i];
+      sc_sub(cassetmask.bytes, cassetmask.bytes, m_cprimeKeys[i].bytes);
+      sc_add(cassetmask.bytes, cassetmask.bytes, m_amountMasks[i].bytes);
+    }
+    else
+    {
+      sc_sub(cassetmask.bytes, cassetmask.bytes, m_cprimeKeys[i].bytes);
+    }
+  }
+
+  cassets = rct::commit(amountTotal, cassetmask);
+  if(!rct::equalKeys(cassets, m_proof.cassets))
+  {
+    std::cout << "Generated Cassets not equal to proof Cassets" << std::endl;
+    return false;
+  }
+
+  return true;
+}
+
+void MoneroExchange::PrintExchangeState()
+{
+  std::cout << "Anonymity set size = " << m_anonSetSize << std::endl;
+  std::cout << "Own keys set size = " << m_ownkeysSetSize << std::endl;
+  std::cout << std::endl;
+  size_t index = 1;
+  for (size_t i = 0; i < m_anonSetSize; i++)
+  {
+    if (sc_isnonzero(m_ownKeys[i].bytes) == 1)
+    {
+      std::cout << "Address at index " << i+1 << " is exchange owned" << std::endl;
+      std::cout << "Address is " << index << " out of " << m_ownkeysSetSize << std::endl;
+      std::cout << "Address = " << m_proof.addrs[i] << std::endl;
+      std::cout << "Amount in address is " << m_ownAmounts[i] << std::endl;
+      index += 1;
+    }
+  }
 }
 
 bool MProveProofPublicVerification(mproveProof proof)

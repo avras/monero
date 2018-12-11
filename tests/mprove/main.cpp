@@ -17,5 +17,7 @@ int main(int argc, char *argv[]) {
   MoneroExchange exch(anonSetSize, ownKeysSetSize, msg);
   mproveProof p = exch.GenerateProofOfAssets();
   MProveProofPublicVerification(p);
+  exch.PrivatelyVerifyProofOfAssets();
+  exch.PrintExchangeState();
   return 0;
 }
