@@ -29,12 +29,19 @@
 set(mprove_sources
   main.cpp)
 
+set(mprove_perf_sources
+  perf.cpp)
+
 set(mprove_headers
   mproveSigs.h
   mprove.h)
 
 add_executable(mprove-tests
   ${mprove_sources}
+  ${mprove_headers})
+
+add_executable(mprove-perf
+  ${mprove_perf_sources}
   ${mprove_headers})
 target_link_libraries(mprove-tests
   PRIVATE
@@ -46,10 +53,30 @@ target_link_libraries(mprove-tests
     ${Boost_CHRONO_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     ${EXTRA_LIBRARIES})
+
+target_link_libraries(mprove-perf
+  PRIVATE
+    wallet
+    cryptonote_core
+    common
+    cncrypto
+    epee
+    ${Boost_CHRONO_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${EXTRA_LIBRARIES})
+
 set_property(TARGET mprove-tests
+  PROPERTY
+    FOLDER "tests")
+
+set_property(TARGET mprove-perf
   PROPERTY
     FOLDER "tests")
 
 add_test(
   NAME    mprove
   COMMAND mprove-tests)
+
+add_test(
+  NAME    mproveperf
+  COMMAND mprove-perf)
