@@ -212,6 +212,7 @@ void MoneroExchange::PrintExchangeState()
       std::cout << "Address is " << index << " out of " << m_ownkeysSetSize << std::endl;
       std::cout << "Address = " << m_proof.addrs[i] << std::endl;
       std::cout << "Amount in address is " << m_ownAmounts[i] << std::endl;
+      std::cout << std::endl;
       index += 1;
     }
   }
