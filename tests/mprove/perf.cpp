@@ -1,25 +1,54 @@
 #include "mprove.h"
 #include <cstdlib>
+#include "../performance_tests/performance_tests.h"
 
 using namespace std;
 
-int main(int argc, char *argv[]) {
-  if (argc < 4)
-  {
-    cout << "Usage: mprove-perf anonSetSize ownKeysSetSize numIterations" << endl;
-    return 1;
-  }
-  int anonSetSize, ownKeysSetSize, numIterations;
-  anonSetSize = atoi(argv[1]);
-  ownKeysSetSize = atoi(argv[2]);
-  numIterations = atoi(argv[3]);
+template <size_t anonSetSize, size_t ownKeysSetSize, size_t numIterations>
+class test_mprove_proof_generation
+{
+  public:
+    static const size_t loop_count = numIterations;
 
-  for (int i = 0; i < numIterations; i++)
-  {
-    cout << "Executing iteration number " << i+1 << " of " << numIterations << endl;
-    rct::key msg = rct::pkGen(); // Random 32 byte message
-    MoneroExchange exch(anonSetSize, ownKeysSetSize, msg);
-    mproveProof p = exch.GenerateProofOfAssets();
-  }
+    bool init()
+    {
+      m_exch = new MoneroExchange(anonSetSize, ownKeysSetSize, rct::pkGen());
+      return true;
+    }
+
+    bool test()
+    {
+      mproveProof p = m_exch->GenerateProofOfAssets();
+      return true;
+    }
+  private:
+    // Third argument is a random 32 byte message
+    MoneroExchange *m_exch;
+};
+
+int main(int argc, char *argv[]) {
+  Params params;
+  params.verbose = true;
+  params.stats = true;
+  params.loop_multiplier = 1;
+  string filter = "";
+
+
+  performance_timer timer;
+  timer.start();
+
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 1000, 100, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 1000, 500, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 1000, 900, 10);
+
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 10000, 1000, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 10000, 5000, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 10000, 9000, 10);
+
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 100000, 10000, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 100000, 50000, 10);
+  TEST_PERFORMANCE3(filter, params, test_mprove_proof_generation, 100000, 90000, 10);
+
+  cout << endl <<  "Tests finished. Elapsed time: " << timer.elapsed_ms() / 1000 << " sec" << endl;
   return 0;
 }
