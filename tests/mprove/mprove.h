@@ -25,6 +25,7 @@ class MoneroExchange
     MoneroExchange(size_t anonSetSize, size_t ownkeysSetSize, rct::key message);
     mproveProof GenerateProofOfAssets();
     bool PrivatelyVerifyProofOfAssets();
+    size_t ProofSize();
     void PrintExchangeState();
 };
 
@@ -196,6 +197,20 @@ bool MoneroExchange::PrivatelyVerifyProofOfAssets()
   }
 
   return true;
+}
+
+size_t MoneroExchange::ProofSize()
+{
+  size_t psize = 0;
+  psize += m_anonSetSize*32; // m_proof.addrs
+  psize += m_anonSetSize*32; // m_proof.cs
+  psize += m_anonSetSize*32; // m_proof.cprimes
+  psize += m_anonSetSize*(32 + 2*32); // m_proof.gammas (ringSig)
+  psize += m_anonSetSize*(32 + 32 + 2*32); // m_proof.sigmas (lsagSig)
+  psize += 32; // m_proof.msg
+  psize += 32; // m_proof.cassets
+
+  return psize;
 }
 
 void MoneroExchange::PrintExchangeState()

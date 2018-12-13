@@ -20,6 +20,8 @@ int main(int argc, char *argv[]) {
   mproveProof p = exch.GenerateProofOfAssets();
   MProveProofPublicVerification(p);
   exch.PrivatelyVerifyProofOfAssets();
+  cout << "Proof size = " << exch.ProofSize() << endl;
+
   if(print)
   {
     exch.PrintExchangeState();
