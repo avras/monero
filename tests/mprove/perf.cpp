@@ -1,6 +1,7 @@
 #include "mprove.h"
 #include <cstdlib>
 #include "../performance_tests/performance_tests.h"
+#include "../performance_tests/performance_utils.h"
 
 using namespace std;
 
@@ -49,6 +50,9 @@ class test_mprove_proof_verification
 };
 
 int main(int argc, char *argv[]) {
+  set_process_affinity(1);
+  set_thread_high_priority();
+
   Params params;
   params.verbose = true;
   params.stats = true;
