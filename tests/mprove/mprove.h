@@ -26,6 +26,7 @@ class MoneroExchange
     mproveProof GenerateProofOfAssets();
     bool PrivatelyVerifyProofOfAssets();
     size_t ProofSize();
+    mproveProof GetProof();
     void PrintExchangeState();
 };
 
@@ -211,6 +212,10 @@ size_t MoneroExchange::ProofSize()
   psize += 32; // m_proof.cassets
 
   return psize;
+}
+mproveProof MoneroExchange::GetProof()
+{
+  return m_proof;
 }
 
 void MoneroExchange::PrintExchangeState()
