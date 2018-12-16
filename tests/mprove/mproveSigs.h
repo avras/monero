@@ -22,13 +22,16 @@ lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key &
     rct::key aG;
 
     rv.ss = rct::keyV(cols);
-    rct::keyV toHash(4);
-    toHash[0] = message;
-    toHash[1] = pk[index];
+    rct::keyV toHash(cols+3);
+    for (i = 0 ; i < cols ; i++)
+    {
+      toHash[i] = pk[i];
+    }
+    toHash[cols] = message;
     Hi = hashToPoint(pk[index]);
     hwdev.mlsag_prepare(Hi, x, alpha, aG, aHP, rv.I);
-    toHash[2] = aG;
-    toHash[3] = aHP;
+    toHash[cols+1] = aG;
+    toHash[cols+2] = aHP;
     precomp(Ip.k, rv.I);
 
     hwdev.mlsag_hash(toHash, c_old);
@@ -44,9 +47,8 @@ lsagSig LSAG_Gen(const rct::key &message, const rct::keyV & pk, const rct::key &
         addKeys2(L, rv.ss[i], c_old, pk[i]);
         hashToPoint(Hi, pk[i]);
         addKeys3(R, rv.ss[i], Hi, c_old, Ip.k);
-        toHash[1] = pk[i];
-        toHash[2] = L;
-        toHash[3] = R;
+        toHash[cols+1] = L;
+        toHash[cols+2] = R;
         hwdev.mlsag_hash(toHash, c);
         copy(c_old, c);
         i = (i + 1) % cols;
@@ -76,8 +78,13 @@ bool LSAG_Ver(const rct::key &message, const rct::keyV & pk, const lsagSig & rv)
     rct::geDsmp Ip;
     precomp(Ip.k, rv.I);
 
-    rct::keyV toHash(4);
-    toHash[0] = message;
+    rct::keyV toHash(cols+3);
+    for (i = 0 ; i < cols ; i++)
+    {
+      toHash[i] = pk[i];
+    }
+    toHash[cols] = message;
+
     i = 0;
     while (i < cols) {
         sc_0(c.bytes);
@@ -85,9 +92,8 @@ bool LSAG_Ver(const rct::key &message, const rct::keyV & pk, const lsagSig & rv)
         hashToPoint(Hi, pk[i]);
         CHECK_AND_ASSERT_MES(!(Hi == rct::identity()), false, "Data hashed to point at infinity");
         addKeys3(R, rv.ss[i], Hi, c_old, Ip.k);
-        toHash[1] = pk[i];
-        toHash[2] = L;
-        toHash[3] = R;
+        toHash[cols+1] = L;
+        toHash[cols+2] = R;
         c = hash_to_scalar(toHash);
         copy(c_old, c);
         i = (i + 1);
