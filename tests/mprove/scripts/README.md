@@ -23,10 +23,10 @@ The running time of the `spent_status_checker.py` script depends on how much of 
 ```
 python keyimage_file_generator.py 100000 images.json && time python spent_status_checker.py images.json
 ```
-The running times in the last column are in seconds. The VIRT and RES columns represent the virtual memory and RAM used by the `monerod` process in GiB units after each run. The run number 0 row corresponds to the memory consumption before the first run of the above command.
+The running times in the last column are in seconds. The VIRT and RES columns represent the virtual memory and RAM used by the `monerod` process in GiB units after each run. The run number 0 row corresponds to the memory consumption before the first run of the above command. These results were generated in April 2019 on a Dell Optiplex 7050 desktop with a 3.6 GHz i7 CPU, 8GB RAM, and 1 TB HDD. During this measurement, the block height of the Monero blockchain was between 1817834 and 1817858.
 
 | Run No. | VIRT (GiB)  | RES (GiB)  | Run Time (secs)   |
-| ------- | ----------- | ---------- | ----------------: |
+| ------: | ----------: | ---------: | ----------------: |
 | 0       | 78.254      | 0.333      | NA                |
 | 1       | 78.254      | 0.796      | 646.488           |
 | 2       | 78.317      | 1.029      | 459.498           |
